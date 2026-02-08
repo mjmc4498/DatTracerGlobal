@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DatTracer Global</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <div>
+        <h1>DatTracer Global</h1>
+        <p>Sistema MVC local para trazabilidad SQL y linaje.</p>
+      </div>
+      <div class="legend">
+        <span class="badge">DDL</span>
+        <span class="badge">DML</span>
+        <span class="badge">DCL</span>
+        <span class="badge">TCL</span>
+      </div>
+    </header>
+
+    <section class="panel">
+      <h2>Entrada SQL</h2>
+      <textarea id="sql-input" placeholder="Pega aquí tus sentencias SQL..."></textarea>
+      <div class="actions">
+        <button id="analyze-btn">Analizar</button>
+        <button id="clear-btn" class="secondary">Limpiar</button>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="panel">
+        <h2>Trazabilidad</h2>
+        <pre id="trace-output">Esperando análisis...</pre>
+      </article>
+      <article class="panel">
+        <h2>Linaje</h2>
+        <pre id="lineage-output">Esperando análisis...</pre>
+      </article>
+    </section>
+  </main>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
