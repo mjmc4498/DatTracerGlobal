@@ -25,7 +25,7 @@ analyzeBtn.addEventListener("click", async () => {
   showMessage(lineageOutput, "Analizando...");
 
   try {
-    const response = await fetch("/analyze", {
+    const response = await fetch("analyze", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
