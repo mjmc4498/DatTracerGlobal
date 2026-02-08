@@ -2,6 +2,9 @@ import re
 from dataclasses import dataclass
 from typing import Dict, List, Set
 
+from models.lineage_model import LineageModel
+from models.traceability_model import TraceabilityModel
+
 
 @dataclass
 class TraceResult:
@@ -100,9 +103,14 @@ class SqlTraceModel:
         "LEAD",
     }
 
+    def __init__(self) -> None:
+        self._traceability = TraceabilityModel()
+        self._lineage = LineageModel()
+
     def analyze(self, sql_text: str) -> Dict[str, object]:
         statements = self._split_statements(sql_text)
         traces: List[TraceResult] = []
+        traceability_rows: List[Dict[str, object]] = []
         lineage_edges: List[Dict[str, str]] = []
         lineage_nodes: Set[str] = set()
 
@@ -124,13 +132,16 @@ class SqlTraceModel:
                 )
             )
 
-            lineage = self._extract_lineage(statement, action, objects)
+            traceability_rows.extend(self._traceability.analyze(statement))
+
+            lineage = self._lineage.analyze(statement, action, objects)
             if lineage:
                 lineage_nodes.update(lineage["nodes"])
                 lineage_edges.extend(lineage["edges"])
 
         return {
-            "traceability": [trace.__dict__ for trace in traces],
+            "traceability": traceability_rows,
+            "statement_summary": [trace.__dict__ for trace in traces],
             "lineage": {
                 "nodes": sorted(lineage_nodes),
                 "edges": lineage_edges,
@@ -229,45 +240,6 @@ class SqlTraceModel:
                 if re.search(rf"\b{re.escape(func)}\s*\(", normalized):
                     found.append(func)
         return sorted(set(found))
-
-    def _extract_lineage(self, statement: str, action: str, objects: List[str]) -> Dict[str, object]:
-        normalized = self._normalize(statement)
-        sources = self._extract_sources(normalized)
-        targets = []
-
-        if action in {"CREATE VIEW", "CREATE TABLE", "INSERT", "MERGE"}:
-            if objects:
-                targets.append(objects[0])
-        elif action == "UPDATE" and objects:
-            targets.append(objects[0])
-
-        edges: List[Dict[str, str]] = []
-        nodes: Set[str] = set()
-
-        for target in targets:
-            nodes.add(target)
-            for source in sources:
-                if source != target:
-                    nodes.add(source)
-                    edges.append(
-                        {
-                            "from": source,
-                            "to": target,
-                            "relation": "lineage",
-                        }
-                    )
-
-        if nodes or edges:
-            return {"nodes": nodes, "edges": edges}
-        return {}
-
-    def _extract_sources(self, normalized: str) -> List[str]:
-        sources: List[str] = []
-        from_matches = re.findall(r"\bFROM\s+([^\s,;]+)", normalized, flags=re.IGNORECASE)
-        join_matches = re.findall(r"\bJOIN\s+([^\s,;]+)", normalized, flags=re.IGNORECASE)
-        using_matches = re.findall(r"\bUSING\s+([^\s,;]+)", normalized, flags=re.IGNORECASE)
-        sources.extend(from_matches + join_matches + using_matches)
-        return list(dict.fromkeys(sources))
 
     @staticmethod
     def _normalize(statement: str) -> str:
